@@ -16,7 +16,7 @@ unsigned lzw_readbuf(void *stream, char *buf, unsigned size)
 }
 
 
-#define  DICTIONARY_SIZE  (1 << 17)
+#define  DICTIONARY_SIZE  (1 << 18)
 node_lzw_t dictionary[DICTIONARY_SIZE];
 int        hash_table[DICTIONARY_SIZE];
 
@@ -87,16 +87,15 @@ int main (int argc, char* argv[])
         fprintf(stderr, "Cannot open %s\n", argv[4]);
         return -3;
     }
-
-    read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), DICTIONARY_SIZE, fdic);
-    read_file_to_buffer(ctx->hash, sizeof(int), DICTIONARY_SIZE, fhash);
 #endif
 
 #ifndef DISABLE_ADD_NEW_NODE
 
-    lzw_enc_init(ctx, fout, NULL, 0);
+    lzw_enc_init(ctx, fout, NULL, 0, &dictionary[0], &hash_table[0], DICT_SIZE);
 #else
-    lzw_enc_restore(ctx, fout, NULL, 0);
+    lzw_enc_restore(ctx, fout, NULL, 0, dictionary, hash_table, DICTIONARY_SIZE);
+    read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), DICTIONARY_SIZE, fdic);
+    read_file_to_buffer(ctx->hash, sizeof(int), DICTIONARY_SIZE, fhash);
 #endif
     for (int i = 0; i < 1; i++) {
         fseek(fin, 0, SEEK_SET);

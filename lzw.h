@@ -2,9 +2,9 @@
 #include "stdint.h"
 
 // не устанавливайте DICT_SIZE> 24 бит (32-битный буфер слишком короткий)
-#define DICT_SIZE	(1 << 18)
-#define CODE_NULL	DICT_SIZE
-#define HASH_SIZE	(DICT_SIZE)
+//#define DICT_SIZE	(1 << 18)
+#define CODE_NULL	0xFFFFFFFF
+//#define HASH_SIZE	(DICT_SIZE)
 
 #define LZW_ERR_DICT_IS_FULL	-1
 #define LZW_ERR_INPUT_BUF		-2
@@ -44,42 +44,22 @@ typedef struct _lzw_enc
     bitbuffer_t   bb;				// bit-buffer struct
     void          *stream;			// pointer to the stream object
     unsigned      lzwn;				// output code-buffer byte counter
-    node_lzw_t    dict[DICT_SIZE];	// code dictionary
-    int           hash[HASH_SIZE];	// hash table
+    node_lzw_t    * dict;       	// code dictionary
+    int           * hash;	        // hash table
     unsigned char buff[256];		// output code-buffer
     unsigned char *e_buf;
     unsigned      e_size;
     unsigned      e_pos;
     char          en_dic;
+    int           dh_size;
 }lzw_enc_t;
 
-// LZW decoder context
-typedef struct _lzw_dec
-{
-    int           code;				// current code
-    unsigned      max;				// maximal code
-    unsigned      codesize;			// number of bits in code
-    bitbuffer_t   bb;				// bit-buffer struct
-    void          *stream;			// pointer to the stream object
-    unsigned      lzwn;				// input code-buffer byte counter
-    unsigned      lzwm;				// input code-buffer size
-    unsigned char *inbuff;		    // input code-buffer
-    node_lzw_t    dict[DICT_SIZE];	// code dictionary
-    unsigned char c;				// first char of the code
-    unsigned char buff[DICT_SIZE];	// output string buffer
-    unsigned char *e_buf;
-    unsigned      e_size;
-    unsigned      e_pos;
-}lzw_dec_t;
 
-void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size);
-void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size);
+void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size);
+void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size);
 int  lzw_encode  (lzw_enc_t *ctx, char * buf, unsigned size);
 void lzw_enc_end (lzw_enc_t *ctx);
 void lzw_disable_update_dictionary(lzw_enc_t *ctx);
-
-void lzw_dec_init(lzw_dec_t *ctx, void *stream, char * buf, unsigned buf_size);
-int  lzw_decode  (lzw_dec_t *ctx, char * buf, unsigned size);
 
 #ifdef USE_OUTPUT_FILE
 // Application defined stream callbacks

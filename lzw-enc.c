@@ -44,12 +44,12 @@ static void lzw_enc_writebits(lzw_enc_t *const ctx, unsigned bits, unsigned nbit
  * \param c - символ
  * \return - хеш-код
  */
-__inline static int lzw_hash(const int code, const unsigned char c)
+__inline static int lzw_hash(const int dh_size, const int code, const unsigned char c)
 {
-    return (code ^ ((int)c << 6)) & (HASH_SIZE-1);
+    return (code ^ ((int)c << 6)) & (dh_size-1);
 }
 
-void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size)
+void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size)
 {
     ctx->code     = CODE_NULL; // non-existent code
     ctx->max      = 65527;
@@ -61,6 +61,9 @@ void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size
     ctx->lzwn     = 0; // output code-buffer init
     ctx->stream   = stream;
     ctx->en_dic   = 0;
+    ctx->dict     = p_dic;
+    ctx->hash     = p_hash;
+    ctx->dh_size  = dh_size;
 }
 
 /**
@@ -68,7 +71,7 @@ void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size
  * \param ctx - контекст LZW
  * \param stream - Указатель на объект потока ввода / вывода;
  */
-void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size)
+void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size)
 {
     unsigned i;
 
@@ -82,15 +85,17 @@ void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size)
     ctx->lzwn     = 0; // output code-buffer init
     ctx->stream   = stream;
     ctx->en_dic   = 1;
-
+    ctx->dict     = p_dic;
+    ctx->hash     = p_hash;
+    ctx->dh_size  = dh_size;
 
     // clear hash table
-    for (i = 0; i < HASH_SIZE; i++)
+    for (i = 0; i < ctx->dh_size; i++)
         ctx->hash[i] = CODE_NULL;
 
     for (i = 0; i < 256; i++)
     {
-        int hash = lzw_hash(CODE_NULL, i);
+        int hash = lzw_hash(ctx->dh_size, CODE_NULL, i);
 
         ctx->dict[i].prev  = CODE_NULL;
         ctx->dict[i].next  = ctx->hash[hash];
@@ -114,12 +119,12 @@ static void lzw_enc_reset(lzw_enc_t *const ctx)
     ctx->max      = 255;
     ctx->codesize = 8;
 
-    for (i = 0; i < HASH_SIZE; i++)
+    for (i = 0; i < ctx->dh_size; i++)
         ctx->hash[i] = CODE_NULL;
 
     for (i = 0; i < 256; i++)
     {
-        int hash = lzw_hash(CODE_NULL, i);
+        int hash = lzw_hash(ctx->dh_size, CODE_NULL, i);
 
         ctx->dict[i].next  = ctx->hash[hash];
         ctx->hash[hash]    = i;
@@ -138,7 +143,7 @@ static int lzw_enc_findstr(lzw_enc_t *const ctx, int code, unsigned char c)
     int nc;
 
     // hash search
-    for (nc = ctx->hash[lzw_hash(code,c)]; nc != CODE_NULL; nc = ctx->dict[nc].next)
+    for (nc = ctx->hash[lzw_hash(ctx->dh_size, code,c)]; nc != CODE_NULL; nc = ctx->dict[nc].next)
     {
         if (ctx->dict[nc].prev == code && ctx->dict[nc].ch == c) {
             break;
@@ -166,7 +171,7 @@ static int lzw_enc_addstr(lzw_enc_t *const ctx, int code, unsigned char c)
         ctx->max++;
     }
 
-    hash = lzw_hash(code, c);
+    hash = lzw_hash(ctx->dh_size, code, c);
 
     // добавить новый код
     ctx->dict[ctx->max].prev  = code;
