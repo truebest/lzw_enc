@@ -49,10 +49,10 @@ __inline static int lzw_hash(const int dh_size, const int code, const unsigned c
     return (code ^ ((int)c << 6)) & (dh_size-1);
 }
 
-void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size)
+void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, void * p_dic, void * p_hash, int dh_size)
 {
     ctx->code     = CODE_NULL; // non-existent code
-    ctx->max      = 66527;
+    ctx->max      = 0;
     ctx->codesize = 17;
     ctx->e_buf    = buf;
     ctx->e_size   = buf_size;

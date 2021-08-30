@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <memory.h>
 #include "lzw.h"
+#include "dictionary_lzw.h"
+#include "hash_lzw.h"
 
 #define BUF_SIZE        512
 
@@ -16,7 +18,7 @@ unsigned lzw_readbuf(void *stream, char *buf, unsigned size)
 }
 
 
-#define  DICTIONARY_SIZE  (1 << 17)
+#define  DICTIONARY_SIZE  (0x10400)
 node_lzw_t dictionary[DICTIONARY_SIZE];
 int        hash_table[DICTIONARY_SIZE];
 
@@ -33,14 +35,33 @@ lzw_enc_t lzwe;
 **
 **  Return: error code
 ******************************************************************************/
-
-void read_file_to_buffer(void * buf, size_t elem_size, size_t max_len, FILE *file )
+int read_file_to_buffer(void * buf, size_t elem_size, FILE *file )
 {
-    fseek(file, 0, SEEK_END);
-    long fsize = max_len > (ftell(file) / elem_size) ? (ftell(file) / elem_size) : max_len;
     fseek(file, 0, SEEK_SET);
-    fread(buf, elem_size, fsize, file);
+    int data_size = 0;
+    fread(&data_size, sizeof(int), 1, file);
+    fread(buf, elem_size, data_size, file);
+    return data_size;
 }
+
+int test_compare(FILE *fdic)
+{
+    node_lzw_t * p_node_1 = (node_lzw_t *)dictionary_lzw_bin;
+    node_lzw_t * p_node_2 = (node_lzw_t *)&dictionary[0];
+    read_file_to_buffer(p_node_2, sizeof(node_lzw_t), fdic);
+
+    for (int i = 0; i < DICT_LZW_LEN / sizeof(node_lzw_t); i++) {
+        if (memcmp(p_node_1, p_node_2, sizeof(node_lzw_t)) != 0) {
+            printf("compare error at %d \n", i);
+            printf("p_node_1: prev 0x%X \t next 0x%X \t char 0x%X \n", p_node_1->prev, p_node_1->next, p_node_1->ch);
+            printf("p_node_2: prev 0x%X \t next 0x%X \t char 0x%X \n", p_node_2->prev, p_node_2->next, p_node_2->ch);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 
 int main (int argc, char* argv[])
 {
@@ -89,13 +110,20 @@ int main (int argc, char* argv[])
     }
 #endif
 
+    //return test_compare(fdic);
+
 #ifndef DISABLE_ADD_NEW_NODE
 
     lzw_enc_init(ctx, fout, NULL, 0, &dictionary[0], &hash_table[0], DICTIONARY_SIZE);
 #else
+#ifndef DIRECT_ARRAY
     lzw_enc_restore(ctx, fout, NULL, 0, dictionary, hash_table, DICTIONARY_SIZE);
-    read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), DICTIONARY_SIZE, fdic);
-    read_file_to_buffer(ctx->hash, sizeof(int), DICTIONARY_SIZE, fhash);
+    read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), fdic);
+    read_file_to_buffer(ctx->hash, sizeof(int), fhash);
+#else
+    int * p_size = ( int *) dictionary;
+    lzw_enc_restore(ctx, fout, NULL, 0, &dictionary_lzw_bin[4], &hash_lzw_bin[4], *(int *)dictionary_lzw_bin);
+#endif
 #endif
     for (int i = 0; i < 1; i++) {
         fseek(fin, 0, SEEK_SET);
@@ -107,9 +135,12 @@ int main (int argc, char* argv[])
     lzw_enc_end(ctx);
 
 #ifndef DISABLE_ADD_NEW_NODE
-
-    fwrite(ctx->dict, sizeof(node_lzw_t), ctx->max + 1, fdic);
-    fwrite(ctx->hash, sizeof(int), ctx->max + 1, fhash);
+    int dic_size = DICTIONARY_SIZE;
+    printf("DICTIONARY_SIZE 0x%x \n", DICTIONARY_SIZE);
+    fwrite(&dic_size, sizeof(int), 1, fdic);
+    fwrite(ctx->dict, sizeof(node_lzw_t), DICTIONARY_SIZE, fdic);
+    fwrite(&dic_size, sizeof(int), 1, fhash);
+    fwrite(ctx->hash, sizeof(int), DICTIONARY_SIZE, fhash);
 
     //fwrite(ctx->dict, sizeof(node_lzw_t), DICT_SIZE, fdic);
     //fwrite(ctx->hash, sizeof(int), HASH_SIZE, fhash);

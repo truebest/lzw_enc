@@ -2,9 +2,7 @@
 #include "stdint.h"
 
 // не устанавливайте DICT_SIZE> 24 бит (32-битный буфер слишком короткий)
-//#define DICT_SIZE	(1 << 18)
-#define CODE_NULL	(0x01000000)
-//#define HASH_SIZE	(DICT_SIZE)
+#define CODE_NULL	(1 << 17)
 
 #define LZW_ERR_DICT_IS_FULL	-1
 #define LZW_ERR_INPUT_BUF		-2
@@ -12,6 +10,7 @@
 
 #define USE_OUTPUT_FILE
 #define DISABLE_ADD_NEW_NODE
+#define DIRECT_ARRAY
 
 //#define OUTPUT_BUFFER
 
@@ -56,7 +55,7 @@ typedef struct _lzw_enc
 
 
 void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size);
-void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size);
+void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, void * p_dic, void * p_hash, int dh_size);
 int  lzw_encode  (lzw_enc_t *ctx, char * buf, unsigned size);
 void lzw_enc_end (lzw_enc_t *ctx);
 void lzw_disable_update_dictionary(lzw_enc_t *ctx);
