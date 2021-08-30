@@ -18,19 +18,19 @@ static void lzw_enc_writebits(lzw_enc_t *const ctx, unsigned bits, unsigned nbit
     while (nbits >= 8)
     {
         nbits -= 8;
-        ctx->buff[ctx->lzwn++] = ctx->bb.buf >> nbits;
+        ctx->tmp_buff[ctx->lzwn++] = ctx->bb.buf >> nbits;
 
-        if (ctx->lzwn == sizeof(ctx->buff)) {
+        if (ctx->lzwn == sizeof(ctx->tmp_buff)) {
             ctx->lzwn = 0;
 #ifdef USE_OUTPUT_BUFFER
-            for (int i = 0; i < sizeof(ctx->buff); i++) {
+            for (int i = 0; i < sizeof(ctx->tmp_buff); i++) {
                 if (ctx->e_pos < ctx->e_size) {
-                    ctx->e_buf[ctx->e_pos++] = ctx->buff[i];
+                    ctx->e_buf[ctx->e_pos++] = ctx->tmp_buff[i];
                 }
             }
 #endif
 #ifdef USE_OUTPUT_FILE
-            lzw_writebuf(ctx->stream, ctx->buff, sizeof(ctx->buff));
+            lzw_writebuf(ctx->stream, ctx->tmp_buff, sizeof(ctx->tmp_buff));
 #endif
         }
     }
@@ -49,7 +49,7 @@ __inline static int lzw_hash(const int dh_size, const int code, const unsigned c
     return (code ^ ((int)c << 6)) & (dh_size-1);
 }
 
-void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, void * p_dic, void * p_hash, int dh_size)
+void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size)
 {
     ctx->code     = CODE_NULL; // non-existent code
     ctx->max      = 0;
@@ -262,12 +262,12 @@ void lzw_enc_end(lzw_enc_t *ctx)
     if (ctx->bb.n)
         lzw_enc_writebits(ctx, 0, 8 - ctx->bb.n);
 #ifdef USE_OUTPUT_FILE
-    lzw_writebuf(ctx->stream, ctx->buff, ctx->lzwn);
+    lzw_writebuf(ctx->stream, ctx->tmp_buff, ctx->lzwn);
 #endif
-#ifdef OUTPUT_BUFFER
+#ifdef USE_OUTPUT_BUFFER
     for (int i = 0; i < ctx->lzwn; i++) {
         if (ctx->e_pos < ctx->e_size) {
-            ctx->e_buf[ctx->e_pos++] = ctx->buff[i];
+            ctx->e_buf[ctx->e_pos++] = ctx->tmp_buff[i];
         }
     }
 #endif

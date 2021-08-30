@@ -11,8 +11,7 @@
 #define USE_OUTPUT_FILE
 #define DISABLE_ADD_NEW_NODE
 #define DIRECT_ARRAY
-
-//#define OUTPUT_BUFFER
+//#define USE_OUTPUT_BUFFER
 
 // bit-buffer
 typedef struct _bitbuffer
@@ -45,7 +44,7 @@ typedef struct _lzw_enc
     unsigned      lzwn;				// output code-buffer byte counter
     node_lzw_t    * dict;       	// code dictionary
     int           * hash;	        // hash table
-    unsigned char buff[256];		// output code-buffer
+    unsigned char tmp_buff[256];		// output code-buffer
     unsigned char *e_buf;
     unsigned      e_size;
     unsigned      e_pos;
@@ -55,7 +54,7 @@ typedef struct _lzw_enc
 
 
 void lzw_enc_init(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size);
-void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, void * p_dic, void * p_hash, int dh_size);
+void lzw_enc_restore(lzw_enc_t *ctx, void *stream, char * buf, unsigned buf_size, node_lzw_t * p_dic, int * p_hash, int dh_size);
 int  lzw_encode  (lzw_enc_t *ctx, char * buf, unsigned size);
 void lzw_enc_end (lzw_enc_t *ctx);
 void lzw_disable_update_dictionary(lzw_enc_t *ctx);
