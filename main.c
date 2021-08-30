@@ -16,7 +16,7 @@ unsigned lzw_readbuf(void *stream, char *buf, unsigned size)
 }
 
 
-#define  DICTIONARY_SIZE  (1 << 18)
+#define  DICTIONARY_SIZE  (1 << 17)
 node_lzw_t dictionary[DICTIONARY_SIZE];
 int        hash_table[DICTIONARY_SIZE];
 
@@ -91,7 +91,7 @@ int main (int argc, char* argv[])
 
 #ifndef DISABLE_ADD_NEW_NODE
 
-    lzw_enc_init(ctx, fout, NULL, 0, &dictionary[0], &hash_table[0], DICT_SIZE);
+    lzw_enc_init(ctx, fout, NULL, 0, &dictionary[0], &hash_table[0], DICTIONARY_SIZE);
 #else
     lzw_enc_restore(ctx, fout, NULL, 0, dictionary, hash_table, DICTIONARY_SIZE);
     read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), DICTIONARY_SIZE, fdic);
@@ -125,7 +125,7 @@ int main (int argc, char* argv[])
         }
     }
 
-    printf("max_index %d, max_value %d\n", max_index, max_value);
+    printf("max_index %d, max_value %d, ctx->max %d\n", max_index, max_value, ctx->max);
 
     fclose(fdic);
     fclose(fhash);

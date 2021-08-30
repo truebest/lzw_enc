@@ -3,7 +3,7 @@
 
 // не устанавливайте DICT_SIZE> 24 бит (32-битный буфер слишком короткий)
 //#define DICT_SIZE	(1 << 18)
-#define CODE_NULL	0xFFFFFFFF
+#define CODE_NULL	(0x01000000)
 //#define HASH_SIZE	(DICT_SIZE)
 
 #define LZW_ERR_DICT_IS_FULL	-1
