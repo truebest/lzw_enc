@@ -178,6 +178,76 @@ int test_compare(FILE *fdic)
 }
 
 
+int encodeToFile(lzw_enc_t * ctx,  char* argv[], char * out_file_name, int num_lines)
+{
+    FILE       *fin;
+    FILE       *fout;
+    FILE       *fdic;
+    FILE       *fhash;
+    char       buf[256];
+    int        encoded_bytes;
+    int        read_num_lines;
+
+    if (!(fin = fopen(argv[1], "rb"))) {
+        fprintf(stderr, "Cannot open %s\n", argv[1]);
+        return -2;
+    }
+
+    if (!(fout = fopen(out_file_name, "w+b"))) {
+        fprintf(stderr, "Cannot open %s\n", out_file_name);
+        return -3;
+    }
+
+    if (!(fdic = fopen(argv[3], "rb"))) {
+        fprintf(stderr, "Cannot open %s\n", argv[3]);
+        return -3;
+    }
+
+    if (!(fhash = fopen(argv[4], "rb"))) {
+        fprintf(stderr, "Cannot open %s\n", argv[4]);
+        return -3;
+    }
+#ifndef READ_DICT_FROM_ARRAY
+    lzw_enc_restore(ctx, fout, NULL, 0, dictionary, hash_table, DICTIONARY_SIZE);
+    read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), fdic);
+    read_file_to_buffer(ctx->hash, sizeof(int), fhash);
+#else
+    lzw_enc_restore(&lzwe, fout, NULL, 0, (node_lzw_t *)&dictionary_lzw_bin[4], (int *)&hash_lzw_bin[4], *(int *)dictionary_lzw_bin);
+#endif
+    fseek(fin, 0, SEEK_SET);
+    int c,  len = 0;
+    read_num_lines = 0;
+    encoded_bytes = 0;
+
+    while (len = lzw_readbuf(fin, buf, sizeof(buf))) {
+        for (int i = 0; i < len; i++) {
+            if (buf[i] == '\n') {
+                read_num_lines++;
+                if (read_num_lines >= num_lines) {
+                    len = i;
+                    break;
+                }
+            }
+        }
+        encoded_bytes += lzw_encode(ctx, buf, len);
+        if (read_num_lines >= num_lines) {
+            break;
+        }
+    }
+
+    lzw_enc_end(ctx);
+
+    fclose(fdic);
+    fclose(fhash);
+    fclose(fin);
+    fclose(fout);
+
+    return encoded_bytes;
+}
+
+
+//#define RUN_ENCODER_STRING_NUM
+
 int main (int argc, char* argv[])
 {
     FILE       *fin;
@@ -187,6 +257,16 @@ int main (int argc, char* argv[])
     lzw_enc_t  *ctx = &lzwe;
     unsigned   len;
     char       buf[256];
+
+#ifdef TEST_ENCODER_STRING_NUM
+
+    for (int i = 500; i <= 12500; i+= 500 ) {
+        //    Haffman_myHeaderEncode("kodavr.bit", "kodavr.bht", "bonch.bbt", i);
+        sprintf(buf, "bonch_lzw_%i.bin\0", i);
+        encodeToFile(ctx, argv, buf, i);
+    }
+    return 0;
+#endif
 
     if (argc < 3) {
         printf("Usage: lzw-enc <input file> <output file>\n");
@@ -231,7 +311,7 @@ int main (int argc, char* argv[])
 
     lzw_enc_init(ctx, fout, NULL, 0, &dictionary[0], &hash_table[0], DICTIONARY_SIZE);
 #else
-#ifndef DIRECT_ARRAY
+#ifndef READ_DICT_FROM_ARRAY
     lzw_enc_restore(ctx, fout, NULL, 0, dictionary, hash_table, DICTIONARY_SIZE);
     read_file_to_buffer(ctx->dict, sizeof(node_lzw_t), fdic);
     read_file_to_buffer(ctx->hash, sizeof(int), fhash);
@@ -242,11 +322,9 @@ int main (int argc, char* argv[])
 #endif
 #endif
 #ifndef USE_OUTPUT_BUFFER
-    for (int i = 0; i < 1; i++) {
-        fseek(fin, 0, SEEK_SET);
-        while (len = lzw_readbuf(fin, buf, sizeof(buf))) {
-            lzw_encode(ctx, buf, len);
-        }
+    fseek(fin, 0, SEEK_SET);
+    while (len = lzw_readbuf(fin, buf, sizeof(buf))) {
+        lzw_encode(ctx, buf, len);
     }
 #else
     for (int i = 0; i < 1; i++) {

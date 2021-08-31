@@ -10,7 +10,7 @@
 
 #define USE_OUTPUT_FILE
 #define DISABLE_ADD_NEW_NODE
-#define DIRECT_ARRAY
+//#define READ_DICT_FROM_ARRAY
 //#define USE_OUTPUT_BUFFER
 
 // bit-buffer
